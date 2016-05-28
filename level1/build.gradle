@@ -1,10 +1,39 @@
 plugins {
   id 'ivy-publish'
+  id 'distribution'
 }
 
 def user = System.getProperty("user.name")
 group = "org.${user}"
 version = "1.0.0"
+
+def sourceArchiveCopySpec = project.copySpec {
+    from ('src')
+}
+
+task sourceArchive(type: Tar) {
+    baseName         = rootProject.name
+    includeEmptyDirs = false
+    compression      = Compression.GZIP
+    classifier       = 'source'
+    with sourceArchiveCopySpec
+    destinationDir(libsDir)
+}
+
+def headersArchiveCopySpec = project.copySpec {
+    from ('src') {
+        include('header*')
+    }
+}
+
+task headersArchive(type: Tar) {
+    baseName         = rootProject.name
+    includeEmptyDirs = false
+    compression      = Compression.GZIP
+    classifier       = 'headers'
+    with headersArchiveCopySpec
+    destinationDir libsDir
+}
 
 publishing {
     repositories {
@@ -22,25 +51,19 @@ publishing {
     }
     publications {
         ivy(IvyPublication) {
-            artifact('src/level1-bit1.8.bit') {
-                 type "bit1.8"
-                 extension "bit"
+            configurations {
+                headers
+                source { extend "headers" }
+            }
+            artifact(headersArchive) {
+                 type "headers"
+                 extension "tgz"
                  name "level1"
             }
-            artifact('src/level1-source.txt') {
+            artifact(sourceArchive) {
                  type "source"
-                 extension "txt"
+                 extension "tgz"
                  name "level1"
-            }
-            artifact('src/level1-zac3.1.zac') {
-                 type "zac3.1"
-                 extension "zac"
-                 name "level1"
-            }
-
-            // Remove configurations
-            descriptor.withXml {
-                asNode().dependencies.dependency.findAll {it.@conf}.each {it.attributes.remove("conf")}
             }
         }
     }
