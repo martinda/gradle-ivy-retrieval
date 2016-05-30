@@ -27,6 +27,73 @@ dependencies {
     compile group: "org.${user}", name: "moduleA", version: "1.0.0", configuration:"headers"
 }
 
+class CopyDependencies extends DefaultTask {
+    @Input
+    def conf
+
+    @TaskAction
+    void run() {
+        visitDependencies(IvyArtifact)
+        visitDependencies(IvyDescriptorArtifact)
+        visitResolvedArtifacts()
+    }
+
+    void visitDependencies(klass) {
+        def componentIds = conf.incoming.resolutionResult.allDependencies.collect { it.selected.id }
+        println("ComponentIds: "+componentIds)
+        def result = project.dependencies.createArtifactResolutionQuery()
+            .forComponents(componentIds)
+            .withArtifacts(IvyModule, klass)
+            .execute()
+        println("Result: "+result)
+        for (component in result.resolvedComponents) {
+            println("Component: "+component)
+            component.getArtifacts(klass).each {
+                println("Component.each.it: "+it)
+                println("Component.each.it.file: "+it.file)
+            }
+        }
+        visitDependencies(conf.incoming.resolutionResult.root)
+    }
+
+    void visitDependencies(ResolvedComponentResult tree) {
+        println("tree: "+tree)
+        println("tree.dependencies: "+tree.dependencies)
+        for (child in tree.dependencies) {
+            println("child: "+child)
+            println("child.from: "+child.from)
+            println("child.requested: "+child.requested)
+            println("child.selected: "+child.selected)
+            visitDependencies(child.selected)
+        }
+    }
+
+    void visitResolvedArtifacts() {
+        conf.resolvedConfiguration.resolvedArtifacts.each {
+            println("01: "+it)
+            println("02: "+it.name)
+            println("03: "+it.file)
+            println("04: "+it.file.absolutePath)
+            println("05: "+it.type)
+            println("06: "+it.moduleVersion)
+            println("07: "+it.moduleVersion.id)
+            println("08: "+it.moduleVersion.id.group)
+            println("09: "+it.moduleVersion.id.name)
+            println("10: "+it.moduleVersion.id.version)
+            String destFolderName =
+                      it.moduleVersion.id.group.replaceAll('\\.','/') +
+                '/' + it.moduleVersion.id.name
+                '/' + it.moduleVersion.id.version
+                '/' + it.type
+            println(destFolderName)
+        }
+    }
+}
+
+task copyDependencies(type: CopyDependencies) {
+    conf configurations.compile
+}
+
 task copyDeps(type: Copy) {
     inputs.files configurations.compile
     from configurations.compile
