@@ -40,32 +40,35 @@ class CopyDependencies extends DefaultTask {
 
     void visitDependencies(klass) {
         def componentIds = conf.incoming.resolutionResult.allDependencies.collect { it.selected.id }
-        println("ComponentIds: "+componentIds)
+        println("= Class: "+klass)
+        println("= ComponentIds: "+componentIds)
         def result = project.dependencies.createArtifactResolutionQuery()
             .forComponents(componentIds)
             .withArtifacts(IvyModule, klass)
             .execute()
-        println("Result: "+result)
+        println("= Result: "+result)
         for (component in result.resolvedComponents) {
-            println("Component: "+component)
+            println("== Component: "+component)
             component.getArtifacts(klass).each {
-                println("Component.each.it: "+it)
-                println("Component.each.it.file: "+it.file)
+                println("=== Component.each.it: "+it)
+                println("=== Component.each.it.file: "+it.file)
             }
         }
         visitDependencies(conf.incoming.resolutionResult.root)
+        println("= Class return: "+klass)
     }
 
     void visitDependencies(ResolvedComponentResult tree) {
-        println("tree: "+tree)
-        println("tree.dependencies: "+tree.dependencies)
+        println("===== tree: "+tree)
+        println("===== tree.dependencies: "+tree.dependencies)
         for (child in tree.dependencies) {
-            println("child: "+child)
-            println("child.from: "+child.from)
-            println("child.requested: "+child.requested)
-            println("child.selected: "+child.selected)
+            println("====== child: "+child)
+            println("====== child.from: "+child.from)
+            println("====== child.requested: "+child.requested)
+            println("====== child.selected: "+child.selected)
             visitDependencies(child.selected)
         }
+        println("===== tree return: "+tree)
     }
 
     void visitResolvedArtifacts() {
